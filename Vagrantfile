@@ -4,7 +4,7 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", privileged: false, inline: <<-SHELL
     set -exuv
     # install cgroup bin
-    sudo apt-get update && sudo apt-get install -y cgroup-bin
+    sudo apt-get update && sudo apt-get install -y cgroup-bin stress htop
 
     # Install Golang
     wget --quiet https://storage.googleapis.com/golang/go1.9.1.linux-amd64.tar.gz
