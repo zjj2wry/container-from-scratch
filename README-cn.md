@@ -1,4 +1,4 @@
-[![README](https://img.shields.io/badge/README-Chinese-yellow.svg)](README-cn.md)
+[![README](https://img.shields.io/badge/README-English-yellow.svg)](README.md)
 
 # container-from-scratch
 build a container from scratch
@@ -8,7 +8,7 @@ build a container from scratch
 - https://docs.docker.com/develop/develop-images/baseimages/
 - https://github.com/moby/moby/blob/master/contrib/mkimage/busybox-static
 
-setup rootfs
+创建 busybox rootfs
 ```
 vagrant up
 vagrant ssh
@@ -16,7 +16,7 @@ chmod +x busybox-static
 ./busybox-static myrootfs
 ```
 
-create an isolated rootfs with chroot
+使用 chroot 设置 busybox 为当前的 rootfs
 ```bash
 vagrant@vagrant:/vagrant$ sudo chroot myrootfs/ bin/sh
 
@@ -31,8 +31,9 @@ Enter 'help' for a list of built-in commands.
 
 - https://lwn.net/Articles/531114/
 - http://www.haifux.org/lectures/299/netLec7.pdf
+- http://www.sel.zju.edu.cn/?p=556
 
-example
+例子
 ```bash
 # Establish a PID namespace, ensure we're PID 1 in it against newly mounted procfs instance.
 vagrant@vagrant:~$ sudo unshare --fork --pid --mount-proc readlink /proc/self
@@ -50,7 +51,7 @@ vagrant@vagrant:~$ sudo nsenter --uts=/root/uts-ns hostname
 foo
 ```
 
-create an isolated container environment using linux namespace
+使用 linux namespace 创建一个隔离的容器环境
 ```bash
 # create an isolated environment, container network is worth discussing separately
 vagrant@vagrant:/vagrant$ sudo unshare --uts --mount --pid --uts --fork
@@ -90,7 +91,7 @@ PID   USER     COMMAND
 
  - [RESOURCE MANAGEMENT GUIDE](https://access.redhat.com/documentation/zh-cn/red_hat_enterprise_linux/6/html/resource_management_guide/ch01#sec-How_Control_Groups_Are_Organized)
 
-install cgroup binary and stress, htop for testing cgroup
+安装 cgroup stress htop 等工具用于测试 cgroup
 ```bash
 # cgroup-bin contains cgroup-related binaries
 # stress - tool to impose load on and stress test systems
@@ -98,7 +99,7 @@ install cgroup binary and stress, htop for testing cgroup
 apt-get install -y cgroup-bin stress htop
 ```
 
-basic command usage
+基本的命令使用
 ```bash
 # show cgroups hierarchy info
 vagrant@vagrant:/vagrant$ cat /proc/cgroups
@@ -132,11 +133,10 @@ vagrant@vagrant:/vagrant$ lscgroup
 ```
 
 ### cpuset
-cpuset can specify which cpu the application is scheduled to
+cpuset 可以指定应用调度到指定的 cpu
 
-use htop to view current cpu information
+使用 htop 查看当前的 cpu 信息
 ![cpuset](./images/cpuset-no-sche.jpg)
-
 
 ```bash
 # create cpu-affinity cgroup
@@ -185,7 +185,7 @@ root@vagrant:/home/vagrant# cgexec -g cpuset:cpu-affinity stress -c 2
 stress: info: [1810] dispatching hogs: 2 cpu, 0 io, 0 vm, 0 hdd
 ```
 
-use htop to view current cpu usage
+使用 htop 查看当前的 cpu 信息
 ![cpuset-sched](./images/cpuset-sched.jpg)
 
 ### cpushare && cpuquota
@@ -194,9 +194,9 @@ use htop to view current cpu usage
 - Real-Time scheduler (RT) — a task scheduler that provides a way to specify the amount of CPU time that real-time tasks can use. For more information about resource limiting of real-time tasks, refer to Section 3.2.2, “RT Tunable Parameters”.
 
 
-cpushare assigns cpu based on weights. The higher the setting, the more you can use, but you can not limit the use of cpu.
+cpushare 通过权重分配 cpu. 设置越高可以使用更多，但是无法限制 cpu 最大使用
 
-cpuset example
+例子
 ```bash
 # create cpu-share group
 root@vagrant:/sys/fs/cgroup/cpu# cgcreate -g cpu:/cpu-share
@@ -231,14 +231,15 @@ cpu.cfs_period_us: 100000
 root@vagrant:/sys/fs/cgroup/cpu# cgexec -g cpu:cpu-share stress -c 4 &
 root@vagrant:/sys/fs/cgroup/cpu# cgexec -g cpu:cpu-share2 stress -c 4 &
 ```
-using htop you can see that one used 75% and the other 25% percent
+
+使用 htop 可以看到一个用了 75%，另一个用了 25%
 ![cpushare](./images/cpushare.jpg)
 
-cpuquota example
+cpuquota 例子
 
-if the CPU is idle, set a small weight to the entire machine's cpu can be used, cpuquota can limit the use of cpu. cpu is split into 1024 timeslice, you can use the higher the cpu time, which means you can use more cpu.
+如果 cpu 空闲，使用一个很小的权重一样可以使用整台机器的 cpu，cpuquota 可以用来限制 cpu 最大使用，cpu 被拆成 1024 个时间片，cpuquota 越大可以使用更多的 cpu 时间
 
-cpu.cfs_quota_us/cpu.cfs_period_us equal to the cpu you can use, if cpu.cfs_quota_us < 0 equal not limit.
+cpu.cfs_quota_us/cpu.cfs_period_us 等于可以使用的 cpu 核数，如果 cpu.cfs_quota_us < 0 等于不限制
 
 > 100000us = 100ms = 0.1s，0.1s cpu per second, 10%
 
@@ -267,11 +268,11 @@ cpu.cfs_period_us: 100000
 root@vagrant:/sys/fs/cgroup/cpu# cgexec -g cpu:cpu-limit stress -c 4
 ```
 
-using htop you can see that using 4 cpus each used 50%
+可以看到使用了百分之 50 的 cpu
 ![cpuquota](./images/cpuquota.jpg)
 
 ### memory
-cpu is a compressible resource, memory is an incompressible resource, if it exceeds memory usage, cgroup oom control can kill the process or wait for the memory to be released
+cpu 是可压缩资源，memory 是不可压缩资源，如果超过了内存使用，cgroup oom control 会杀死进程或者等待内存被释放
 
 ```bash
 root@vagrant:/sys/fs/cgroup/cpu# cgcreate -g memory:/memory-limit
@@ -289,7 +290,7 @@ memory.oom_control: oom_kill_disable 0
 root@vagrant:/sys/fs/cgroup/cpu# cgexec -g memory:memory-limit stress -m 1 --vm-bytes 500M
 ```
 
-physical memory can only use 100m, 400m run to virtual memory
+物理内存使用了 100m, 虚拟内存使用了 400m
 ![memory](./images/memory-500m.jpg)
 
 ```bash
@@ -306,7 +307,7 @@ stress: FAIL: [24386] (415) <-- worker 24387 got signal 9
 stress: WARN: [24386] (417) now reaping child worker processes
 stress: FAIL: [24386] (451) failed run completed in 0s
 ```
-use dmesg to view the kernel log, you can look at the oom log
+使用 dmesg 查看 kernel 日志, 看到 oom 的日志
 ```
 vagrant@vagrant:~$ dmesg
 [26218.749573] Task in /memory-limit killed as a result of limit of /memory-limit
@@ -322,7 +323,8 @@ vagrant@vagrant:~$ dmesg
 ```
 
 ### oom score
-The OOM Killer has to select the “best” process to kill. “Best” here refers to that process which will free up maximum memory upon killing and is also least important to the system.
+OOM Killer 会选择优先级低的应用杀死，来保证重要的程序能分配到足够的内存
+
 ```bash
 root@vagrant:/sys/fs/cgroup/cpu# cgexec -g memory:memory-limit stress -m 1 --vm-bytes 20M &
 root@vagrant:/sys/fs/cgroup/cpu# ps -ef | grep stress
@@ -332,25 +334,24 @@ root@vagrant:/sys/fs/cgroup/cpu# cat /proc/24409/oom_score
 ```
 > -1000 < oom_score < 1000
 
-the higher the oom score, the priority is to delete who
+oom 分数越高，优先被杀死
 
 ## run a container
 
 ```bash
-# generated container ID
+# 生成容器 ID
 contid=$(printf '%x%x%x%x' $RANDOM $RANDOM $RANDOM $RANDOM)
-# create cgroup and set resources
+# 创建 cgroup 并设置资源
 cgcreate -g cpu,cpuacct,memory:/"$contid"
 cgset -r cpu.cfs_quota_us=100000 "$contid"/
 cgset -r memory.limit_in_bytes=100m "$contid"/
 cgexec -g cpu,cpuacct,memory:/"$contid" \
     unshare --uts --mount --pid --uts --fork \
-	# change rootfs to myrootfs and mount /proc
-	# echo "hello world"
-    chroot myrootfs/ bin/sh -c "mkdir -p /proc && /bin/mount -t proc proc /proc && echo hello world"
+	# 修改 rootfs 为最佳创建的 myrootfs 并挂载 proc 文件
+    chroot myrootfs/ bin/sh -c "mkdir -p /proc && /bin/mount -t proc proc /proc && echo $@"
 ```
 
-print hello world
+打印 hello world
 ```
 root@vagrant:/vagrant# ./run-container.sh "echo hello world"
 hello world
